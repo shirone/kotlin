@@ -308,7 +308,7 @@ public class InlineCodegen extends CallGenerator {
 
         MethodNode node = new MethodNode(
                 InlineCodegenUtil.API,
-                getMethodAsmFlags(functionDescriptor, context.getContextKind()) | (callDefault ? Opcodes.ACC_STATIC : 0),
+                getMethodAsmFlags(functionDescriptor, context.getContextKind(), state) | (callDefault ? Opcodes.ACC_STATIC : 0),
                 asmMethod.getName(),
                 asmMethod.getDescriptor(),
                 null, null
@@ -461,7 +461,7 @@ public class InlineCodegen extends CallGenerator {
         JvmMethodSignature jvmMethodSignature = typeMapper.mapSignatureSkipGeneric(descriptor);
         Method asmMethod = jvmMethodSignature.getAsmMethod();
         MethodNode methodNode = new MethodNode(
-                InlineCodegenUtil.API, getMethodAsmFlags(descriptor, context.getContextKind()),
+                InlineCodegenUtil.API, getMethodAsmFlags(descriptor, context.getContextKind(), state),
                 asmMethod.getName(), asmMethod.getDescriptor(), null, null
         );
 
@@ -655,7 +655,7 @@ public class InlineCodegen extends CallGenerator {
 
     @Override
     public void putHiddenParams() {
-        if ((getMethodAsmFlags(functionDescriptor, context.getContextKind()) & Opcodes.ACC_STATIC) == 0) {
+        if ((getMethodAsmFlags(functionDescriptor, context.getContextKind(), state) & Opcodes.ACC_STATIC) == 0) {
             invocationParamBuilder.addNextParameter(AsmTypes.OBJECT_TYPE, false);
         }
 
