@@ -124,7 +124,7 @@ open class K2JVMCompiler : CLICompiler<K2JVMCompilerArguments>() {
             return ExitCode.OK
         }
 
-        configuration.add(CommonConfigurationKeys.SCRIPT_DEFINITIONS_KEY, StandardScriptDefinition)
+//        configuration.add(CommonConfigurationKeys.SCRIPT_DEFINITIONS_KEY, StandardScriptDefinition)
 
         if (arguments.skipMetadataVersionCheck) {
             JvmMetadataVersion.skipCheck = true
