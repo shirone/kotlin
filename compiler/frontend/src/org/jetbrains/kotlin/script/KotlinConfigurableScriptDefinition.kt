@@ -46,29 +46,9 @@ class KotlinConfigurableScriptDefinition(val config: KotlinScriptConfig, val env
 
     override fun getScriptName(script: KtScript): Name = ScriptNameUtil.fileNameWithExtensionStripped(script, KotlinParserDefinition.STD_SCRIPT_EXT)
 
-    protected val evaluatedClasspath by lazy { config.classpath.evalDistinctWith(environmentVars) }
+    private val evaluatedClasspath by lazy { config.classpath.evalWithVars(environmentVars).distinct() }
 
     override fun getScriptDependenciesClasspath(): List<String> = evaluatedClasspath
-}
-
-class KotlinDelegatingScriptDefinitionWithExtraImports internal constructor (
-        val delegate: KotlinScriptDefinition,
-        val extraImports: List<KotlinScriptExtraImport>
-) : KotlinScriptDefinition {
-    override val name: String get() = delegate.name
-    override fun getScriptParameters(scriptDescriptor: ScriptDescriptor): List<ScriptParameter> = delegate.getScriptParameters(scriptDescriptor)
-    override fun getScriptSupertypes(scriptDescriptor: ScriptDescriptor): List<KotlinType> = delegate.getScriptSupertypes(scriptDescriptor)
-    override fun getSuperclassConstructorParametersToScriptParametersMap(scriptDescriptor: ScriptDescriptor): List<Pair<Name, KotlinType>> =
-        delegate.getSuperclassConstructorParametersToScriptParametersMap(scriptDescriptor)
-    override fun isScript(file: PsiFile): Boolean = delegate.isScript(file)
-    override fun isScript(file: VirtualFile): Boolean = delegate.isScript(file)
-    override fun getScriptName(script: KtScript): Name = delegate.getScriptName(script)
-
-    protected val evaluatedExtraClasspath by lazy {
-        (delegate.getScriptDependenciesClasspath() + extraImports.flatMap { it.classpath }).distinct()
-    }
-
-    override fun getScriptDependenciesClasspath(): List<String> = evaluatedExtraClasspath
 }
 
 
@@ -76,14 +56,17 @@ class KotlinDelegatingScriptDefinitionWithExtraImports internal constructor (
 // if corresponding list of replacements is empty, all strings containing the reference to the var are removed
 // TODO: fix and tests
 // TODO: move to some utils
-internal fun List<String>.evalDistinctWith(varsMap: Map<String, List<String>>?): List<String> =
+internal fun List<String>.evalWithVars(varsMap: Map<String, List<String>>?): List<String> =
         if (varsMap == null || varsMap.isEmpty()) this
         else this.flatMap { cpentry ->
             varsMap.entries.fold(listOf(cpentry)) { p, v ->
-                if (v.value.isEmpty() && cpentry.contains("\${${v.key}}")) emptyList()
-                else v.value.flatMap { valListElement ->
-                    p.map { it.replace("\${${v.key}}", valListElement) }
+                if (cpentry.contains("\${${v.key}}")) {
+                    if (v.value.isEmpty()) emptyList()
+                    else v.value.flatMap { valListElement ->
+                        p.map { it.replace("\${${v.key}}", valListElement) }
+                    }
                 }
+                else p
             }
         }
 
