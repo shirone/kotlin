@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.idea.decompiler.KtDecompiledFile
 import org.jetbrains.kotlin.idea.decompiler.textBuilder.DecompiledTextIndexer
+import org.jetbrains.kotlin.idea.script.KotlinScriptConfigurationManager
 import org.jetbrains.kotlin.idea.stubindex.KotlinFullClassNameIndex
 import org.jetbrains.kotlin.idea.stubindex.KotlinSourceFilterScope
 import org.jetbrains.kotlin.idea.stubindex.KotlinTopLevelFunctionFqnNameIndex
@@ -76,11 +77,16 @@ private fun findCandidateDeclarationsInIndex(
         project: Project,
         referencedDescriptor: DeclarationDescriptor
 ): Collection<KtDeclaration?> {
-    val scope = KotlinSourceFilterScope.libraryClassFiles(GlobalSearchScope.allScope(project), project)
+    val scope = GlobalSearchScope.union(
+            arrayOf<GlobalSearchScope>(
+                    KotlinSourceFilterScope.libraryClassFiles(GlobalSearchScope.allScope(project), project),
+                    // NOTE: using this scope here and getNoScopeWrap below is hopefully temporary and will be removed after refactoring
+                    //   of searching logic
+                    KotlinScriptConfigurationManager.getInstance(project).getAllScriptsClasspathScope()))
 
     val containingClass = DescriptorUtils.getParentOfType(referencedDescriptor, ClassDescriptor::class.java, false)
     if (containingClass != null) {
-        return KotlinFullClassNameIndex.getInstance().get(containingClass.fqNameSafe.asString(), project, scope)
+        return KotlinFullClassNameIndex.getInstance().getNoScopeWrap(containingClass.fqNameSafe.asString(), project, scope)
     }
 
     val topLevelDeclaration = DescriptorUtils.getParentOfType(referencedDescriptor, PropertyDescriptor::class.java, false)
