@@ -19,9 +19,9 @@ package org.jetbrains.kotlin.idea.script
 import com.intellij.openapi.components.AbstractProjectComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.StandardFileSystems
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.roots.ex.ProjectRootManagerEx
+import com.intellij.openapi.util.EmptyRunnable
+import com.intellij.openapi.vfs.*
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.search.GlobalSearchScope
@@ -31,11 +31,14 @@ import org.jetbrains.kotlin.idea.caches.resolve.FileLibraryScope
 import org.jetbrains.kotlin.script.*
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.InputStream
+import java.io.OutputStream
 
 @Suppress("unused") // project component
 class KotlinScriptConfigurationManager(private val project: Project,
                                        private val scriptDefinitionProvider: KotlinScriptDefinitionProvider,
-                                       private val scriptExtraImportsProvider: KotlinScriptExtraImportsProvider?
+                                       private val scriptExtraImportsProvider: KotlinScriptExtraImportsProvider?,
+                                       private val kotlinScriptDependenciesIndexableSetContributor: KotlinScriptDependenciesIndexableSetContributor?
 ) : AbstractProjectComponent(project) {
 
     private val kotlinEnvVars: Map<String, List<String>> by lazy { generateKotlinScriptClasspathEnvVarsForIdea(myProject) }
@@ -45,9 +48,13 @@ class KotlinScriptConfigurationManager(private val project: Project,
         val conn = myProject.messageBus.connect()
         conn.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener.Adapter() {
             override fun after(events: List<VFileEvent>) {
+                var anyScriptDependenciesMayBeChanged = false
                 var anyScriptDefinitionChanged = false
                 events.filter { it is VFileEvent }.forEach {
                     it.file?.let {
+                        if (!anyScriptDependenciesMayBeChanged) {
+                            anyScriptDependenciesMayBeChanged = true
+                        }
                         if (!anyScriptDefinitionChanged && isScriptDefinitionConfigFile(it)) {
                             anyScriptDefinitionChanged = true
                         }
@@ -60,6 +67,9 @@ class KotlinScriptConfigurationManager(private val project: Project,
                 }
                 if (anyScriptDefinitionChanged) {
                     reloadScriptDefinitions()
+                }
+                if (anyScriptDependenciesMayBeChanged) {
+                    ProjectRootManagerEx.getInstanceEx(project)?.makeRootsChange(EmptyRunnable.getInstance(), false, true)
                 }
             }
         })
@@ -118,9 +128,10 @@ class KotlinScriptConfigurationManager(private val project: Project,
 
 class KotlinScriptDependenciesIndexableSetContributor : IndexableSetContributor() {
 
-    override fun getAdditionalProjectRootsToIndex(project: Project): Set<VirtualFile> =
-            super.getAdditionalProjectRootsToIndex(project) +
-                KotlinScriptConfigurationManager.getInstance(project).getAllScriptsClasspath()
+    override fun getAdditionalProjectRootsToIndex(project: Project): Set<VirtualFile> {
+        return super.getAdditionalProjectRootsToIndex(project) +
+            KotlinScriptConfigurationManager.getInstance(project).getAllScriptsClasspath()
+    }
 
     override fun getAdditionalRootsToIndex(): Set<VirtualFile> = emptySet()
 }
