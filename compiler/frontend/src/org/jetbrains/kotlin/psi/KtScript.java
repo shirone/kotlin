@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.stubs.KotlinScriptStub;
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes;
+import org.jetbrains.kotlin.script.GetScriptDefinitionKt;
 import org.jetbrains.kotlin.script.KotlinScriptDefinition;
 import org.jetbrains.kotlin.script.KotlinScriptDefinitionProvider;
 
@@ -47,7 +48,7 @@ public class KtScript extends KtNamedDeclarationStub<KotlinScriptStub> implement
         }
         KtFile containingKtFile = getContainingKtFile();
         KotlinScriptDefinition kotlinScriptDefinition =
-                KotlinScriptDefinitionProvider.getInstance(getProject()).findScriptDefinition(containingKtFile);
+                GetScriptDefinitionKt.getScriptDefinition(containingKtFile);
         assert kotlinScriptDefinition != null : "Should not parse a script without definition";
         return containingKtFile.getPackageFqName().child(kotlinScriptDefinition.getScriptName(this));
     }
