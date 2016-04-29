@@ -40,9 +40,9 @@ class KotlinScriptDefinitionProvider {
             }
         }
 
-    internal fun findScriptDefinition(file: VirtualFile): KotlinScriptDefinition? = lock.read { definitions.firstOrNull { it.isScript(file) } }
+    fun findScriptDefinition(file: VirtualFile): KotlinScriptDefinition? = lock.read { definitions.firstOrNull { it.isScript(file) } }
 
-    internal fun findScriptDefinition(psiFile: PsiFile): KotlinScriptDefinition? = lock.read { definitions.firstOrNull { it.isScript(psiFile) } }
+    fun findScriptDefinition(psiFile: PsiFile): KotlinScriptDefinition? = lock.read { definitions.firstOrNull { it.isScript(psiFile) } }
 
     fun isScript(file: VirtualFile): Boolean = findScriptDefinition(file) != null
 
