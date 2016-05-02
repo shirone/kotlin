@@ -48,19 +48,19 @@ class KotlinScriptConfigurationManager(private val project: Project,
         val conn = myProject.messageBus.connect()
         conn.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener.Adapter() {
             override fun after(events: List<VFileEvent>) {
-                var anyScriptDependenciesMayBeChanged = false
+                var anyScriptExtraImportsChanged = false
                 var anyScriptDefinitionChanged = false
                 events.filter { it is VFileEvent }.forEach {
                     it.file?.let {
-                        if (!anyScriptDependenciesMayBeChanged) {
-                            anyScriptDependenciesMayBeChanged = true
-                        }
                         if (!anyScriptDefinitionChanged && isScriptDefinitionConfigFile(it)) {
                             anyScriptDefinitionChanged = true
                         }
                         scriptExtraImportsProvider?.run {
                             if (isExtraImportsConfig(it)) {
                                 invalidateExtraImports(it)
+                                if (!anyScriptExtraImportsChanged) {
+                                    anyScriptExtraImportsChanged = true
+                                }
                             }
                         }
                     }
@@ -68,20 +68,23 @@ class KotlinScriptConfigurationManager(private val project: Project,
                 if (anyScriptDefinitionChanged) {
                     reloadScriptDefinitions()
                 }
-                if (anyScriptDependenciesMayBeChanged) {
+                if (anyScriptExtraImportsChanged) {
                     ProjectRootManagerEx.getInstanceEx(project)?.makeRootsChange(EmptyRunnable.getInstance(), false, true)
                 }
             }
         })
     }
 
-    // TODO: cache
-    fun getScriptClasspath(file: VirtualFile): List<VirtualFile> =
-        getScriptClasspathRaw(file)
-                .mapNotNull { StandardFileSystems.local().findFileByPath(it) }
-                .distinct()
+    private val scriptClasspathCache = hashMapOf<VirtualFile, List<VirtualFile>>()
+    private var allScriptsClasspathCache: List<VirtualFile>? = null
 
-    // TODO: cache
+    fun getScriptClasspath(file: VirtualFile): List<VirtualFile> =
+            scriptClasspathCache.getOrPut(file, {
+                getScriptClasspathRaw(file)
+                        .mapNotNull { StandardFileSystems.local().findFileByPath(it) }
+                        .distinct()
+            })
+
     fun getAllScriptsClasspath(): List<VirtualFile> {
         fun<R> VirtualFile.vfsWalkFiles(onFile: (VirtualFile) -> List<R>?): List<R> {
             assert(isDirectory)
@@ -90,19 +93,26 @@ class KotlinScriptConfigurationManager(private val project: Project,
                 else -> onFile(it) ?: emptyList()
             } }
         }
-        return project.baseDir.vfsWalkFiles { getScriptClasspathRaw(it) }
-                .distinct()
-                .mapNotNull {
-                    if (File(it).isDirectory)
-                        StandardFileSystems.local()?.findFileByPath(it) ?: throw FileNotFoundException("Classpath entry points to a non-existent location: $it")
-                    else
-                        StandardFileSystems.jar()?.findFileByPath(it + URLUtil.JAR_SEPARATOR) ?: throw FileNotFoundException("Classpath entry points to a file that is not a JAR archive: $it")
+        if (allScriptsClasspathCache == null) {
+            allScriptsClasspathCache = project.baseDir.vfsWalkFiles { getScriptClasspathRaw(it) }
+                    .distinct()
+                    .mapNotNull {
+                        if (File(it).isDirectory)
+                            StandardFileSystems.local()?.findFileByPath(it) ?: throw FileNotFoundException("Classpath entry points to a non-existent location: $it")
+                        else
+                            StandardFileSystems.jar()?.findFileByPath(it + URLUtil.JAR_SEPARATOR) ?: throw FileNotFoundException("Classpath entry points to a file that is not a JAR archive: $it")
 
-                }
+                    }
+        }
+        return allScriptsClasspathCache!!
     }
 
-    fun getAllScriptsClasspathScope(): GlobalSearchScope =
-            GlobalSearchScope.union(getAllScriptsClasspath().map { FileLibraryScope(project, it) }.toTypedArray())
+    fun getAllScriptsClasspathScope(): GlobalSearchScope? {
+        return getAllScriptsClasspath().let { cp ->
+            if (cp.isEmpty()) null
+            else GlobalSearchScope.union(cp.map { FileLibraryScope(project, it) }.toTypedArray())
+        }
+    }
 
     private fun getScriptClasspathRaw(file: VirtualFile): List<String> =
             scriptDefinitionProvider.findScriptDefinition(file)?.getScriptDependenciesClasspath()?.let {
