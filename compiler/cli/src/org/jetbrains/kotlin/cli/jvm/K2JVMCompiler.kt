@@ -283,6 +283,7 @@ open class K2JVMCompiler : CLICompiler<K2JVMCompilerArguments>() {
             configuration.put(JVMConfigurationKeys.INHERIT_MULTIFILE_PARTS, arguments.inheritMultifileParts)
             configuration.put(CLIConfigurationKeys.ALLOW_KOTLIN_PACKAGE, arguments.allowKotlinPackage)
             configuration.put(CLIConfigurationKeys.REPORT_PERF, arguments.reportPerf)
+            configuration.put(JVMConfigurationKeys.LOAD_SCRIPT_CONFIGS, arguments.loadScriptConfigs)
         }
 
         private fun getClasspath(paths: KotlinPaths, arguments: K2JVMCompilerArguments): List<File> {

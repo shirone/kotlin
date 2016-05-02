@@ -54,4 +54,6 @@ public class JVMConfigurationKeys {
     public static final CompilerConfigurationKey<String> MODULE_NAME =
             CompilerConfigurationKey.create("module name");
 
+    public static final CompilerConfigurationKey<Boolean> LOAD_SCRIPT_CONFIGS =
+            CompilerConfigurationKey.create("Load script configuration files from project directory tree");
 }
