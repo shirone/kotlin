@@ -100,10 +100,16 @@ private fun findCandidateDeclarationsInIndex(
     val fqName = topLevelDeclaration.fqNameSafe.asString()
     when (topLevelDeclaration) {
         is FunctionDescriptor -> {
-            return KotlinTopLevelFunctionFqnNameIndex.getInstance().get(fqName, project, scope)
+            return if (scriptsScope != null)
+                KotlinTopLevelFunctionFqnNameIndex.getInstance().getNoScopeWrap(fqName, project, scope)
+            else
+                KotlinTopLevelFunctionFqnNameIndex.getInstance().get(fqName, project, scope)
         }
         is PropertyDescriptor -> {
-            return KotlinTopLevelPropertyFqnNameIndex.getInstance().get(fqName, project, scope)
+            return if (scriptsScope != null)
+                KotlinTopLevelPropertyFqnNameIndex.getInstance().getNoScopeWrap(fqName, project, scope)
+            else
+                KotlinTopLevelPropertyFqnNameIndex.getInstance().get(fqName, project, scope)
         }
         else -> error("Referenced non local declaration that is not inside top level function, property of class:\n $referencedDescriptor")
     }
