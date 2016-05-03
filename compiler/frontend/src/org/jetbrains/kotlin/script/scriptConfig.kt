@@ -68,15 +68,19 @@ fun generateSampleScriptConfig(): String {
 }
 
 @Tag("scriptParam")
-class KotlinScriptParameterConfig(@Tag("name") var name: String = "",
-                                  @Tag("type") var type: String = "")
+data class KotlinScriptParameterConfig(
+        @Tag("name") var name: String = "",
+        @Tag("type") var type: String = ""
+)
 
 @Tag("scriptParamToSuperclassParam")
-class KotlinScriptSuperclassParameterConfig(@Tag("scriptParamName") var scriptParamName: String = "",
-                                            @Tag("superclassParamType") var superclassParamType: String = "r")
+data class KotlinScriptSuperclassParameterConfig(
+        @Tag("scriptParamName") var scriptParamName: String = "",
+        @Tag("superclassParamType") var superclassParamType: String = "r"
+)
 
 @Tag("script")
-class KotlinScriptConfig(
+data class KotlinScriptConfig(
         @Tag("name")
         var name: String = "KotlinScript",
 

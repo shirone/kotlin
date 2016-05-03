@@ -28,29 +28,43 @@ import kotlin.concurrent.write
 class KotlinScriptDefinitionProvider {
 
     private val definitions: MutableList<KotlinScriptDefinition> = arrayListOf(StandardScriptDefinition)
+    private val definitionsLock = java.util.concurrent.locks.ReentrantReadWriteLock()
+    private val notificationHandlers = ArrayList<() -> Unit>()
+    private val handlersLock = java.util.concurrent.locks.ReentrantReadWriteLock()
 
-    private val lock = java.util.concurrent.locks.ReentrantReadWriteLock()
-
-    var scriptDefinitions: List<KotlinScriptDefinition>
-        get() = lock.read { definitions } // TODO: remove as unsafe with locking, replace with particular data extractors
-        set(definitions: List<KotlinScriptDefinition>) {
-            lock.write {
-                this.definitions.clear()
-                this.definitions.addAll(definitions)
+    fun setScriptDefinitions(newDefinitions: List<KotlinScriptDefinition>): Unit {
+        var changed = false
+        definitionsLock.read {
+            if (newDefinitions != definitions) {
+                definitionsLock.write {
+                    definitions.clear()
+                    definitions.addAll(newDefinitions)
+                }
+                changed = true
             }
         }
+        if (changed) {
+            handlersLock.read {
+                notificationHandlers.forEach { it() }
+            }
+        }
+    }
 
-    fun findScriptDefinition(file: VirtualFile): KotlinScriptDefinition? = lock.read { definitions.firstOrNull { it.isScript(file) } }
+    fun findScriptDefinition(file: VirtualFile): KotlinScriptDefinition? = definitionsLock.read { definitions.firstOrNull { it.isScript(file) } }
 
-    fun findScriptDefinition(psiFile: PsiFile): KotlinScriptDefinition? = lock.read { definitions.firstOrNull { it.isScript(psiFile) } }
+    fun findScriptDefinition(psiFile: PsiFile): KotlinScriptDefinition? = definitionsLock.read { definitions.firstOrNull { it.isScript(psiFile) } }
 
     fun isScript(file: VirtualFile): Boolean = findScriptDefinition(file) != null
 
     fun isScript(psiFile: PsiFile): Boolean = findScriptDefinition(psiFile) != null
 
+    fun subscribeOnDefinitionsChanged(handler: () -> Unit): Unit {
+        handlersLock.write { notificationHandlers.add(handler) }
+    }
+
     @TestOnly
     fun addScriptDefinition(scriptDefinition: KotlinScriptDefinition) {
-        lock.write {
+        definitionsLock.write {
             definitions.add(0, scriptDefinition)
         }
     }
