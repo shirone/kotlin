@@ -248,8 +248,7 @@ object KotlinToJVMBytecodeCompiler {
         try {
             try {
                 tryConstructClass(scriptClass.kotlin, scriptArgs)
-                    ?: throw RuntimeException("unable to find appropriate constructor for class ${scriptClass.name} accepting arguments $scriptArgs\n" +
-                                "\tconstructors: \n\t\t${scriptClass.kotlin.constructors.joinToString("\n\t\t", "(") { it.parameters.joinToString { it.type.toString() } }}")
+                    ?: throw RuntimeException("unable to find appropriate constructor for class ${scriptClass.name} accepting arguments $scriptArgs\n")
             }
             finally {
                 // NB: these lines are required (see KT-9546) but aren't covered by tests
