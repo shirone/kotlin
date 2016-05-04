@@ -247,7 +247,7 @@ object KotlinToJVMBytecodeCompiler {
 
         try {
             try {
-                tryConstructClass(scriptClass.kotlin, scriptArgs)
+                tryConstructClass(scriptClass, scriptArgs)
                     ?: throw RuntimeException("unable to find appropriate constructor for class ${scriptClass.name} accepting arguments $scriptArgs\n")
             }
             finally {
@@ -281,9 +281,9 @@ object KotlinToJVMBytecodeCompiler {
     }
 
     @TestOnly
-    fun tryConstructClassPub(scriptClass: KClass<out Any>, scriptArgs: List<String>): Any? = tryConstructClass(scriptClass, scriptArgs)
+    fun tryConstructClassPub(scriptClass: Class<*>, scriptArgs: List<String>): Any? = tryConstructClass(scriptClass, scriptArgs)
 
-    private fun tryConstructClass(scriptClass: KClass<out Any>, scriptArgs: List<String>): Any? {
+    private fun tryConstructClass(scriptClass: Class<*>, scriptArgs: List<String>): Any? {
 
         fun convertPrimitive(type: KType?, arg: String): Any? =
                 when (type) {
@@ -333,10 +333,15 @@ object KotlinToJVMBytecodeCompiler {
             return state
         }
 
-        for (ctor in scriptClass.constructors) {
-            val (ctorArgs, scriptArgsLeft) = ctor.parameters.fold(Pair(emptyList<Any>(), scriptArgs), ::foldingFunc)
-            if (ctorArgs.size == ctor.parameters.size && (scriptArgsLeft == null || scriptArgsLeft.isEmpty()))
-                return ctor.call(*ctorArgs.toTypedArray())
+        try {
+            return scriptClass.getConstructor(Array<String>::class.java).newInstance(*arrayOf<Any>(scriptArgs.toTypedArray()))
+        }
+        catch (e: java.lang.NoSuchMethodException) {
+            for (ctor in scriptClass.kotlin.constructors) {
+                val (ctorArgs, scriptArgsLeft) = ctor.parameters.fold(Pair(emptyList<Any>(), scriptArgs), ::foldingFunc)
+                if (ctorArgs.size == ctor.parameters.size && (scriptArgsLeft == null || scriptArgsLeft.isEmpty()))
+                    return ctor.call(*ctorArgs.toTypedArray())
+            }
         }
         return null
     }
