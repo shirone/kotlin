@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.getSuperClassOrAny
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.types.typeUtil.supertypes
+import org.jetbrains.org.objectweb.asm.Opcodes
 import org.jetbrains.uast.*
 import org.jetbrains.uast.psi.PsiElementBacked
 
@@ -76,7 +77,7 @@ class KotlinUClass(
     override val internalName by lz {
         val descriptor = resolveToDescriptor() ?: return@lz null
         val typeMapper = KotlinTypeMapper(BindingContext.EMPTY, ClassBuilderMode.LIGHT_CLASSES, NoResolveFileClassesProvider, null,
-                                               IncompatibleClassTracker.DoNothing, JvmAbi.DEFAULT_MODULE_NAME)
+                                          IncompatibleClassTracker.DoNothing, JvmAbi.DEFAULT_MODULE_NAME, Opcodes.V1_6)
         typeMapper.mapClass(descriptor).internalName
     }
 

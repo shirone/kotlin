@@ -35,6 +35,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.propertyIfAccessor
 import org.jetbrains.kotlin.resolve.jvm.diagnostics.*
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.utils.addIfNotNull
+import org.jetbrains.org.objectweb.asm.Opcodes
 import java.util.*
 
 private val EXTERNAL_SOURCES_KINDS = arrayOf(
@@ -53,7 +54,7 @@ class BuilderFactoryForDuplicateSignatureDiagnostics(
 
     // Avoid errors when some classes are not loaded for some reason
     private val typeMapper = KotlinTypeMapper(bindingContext, ClassBuilderMode.LIGHT_CLASSES, fileClassesProvider, incrementalCache,
-                                           IncompatibleClassTracker.DoNothing, moduleName)
+                                              IncompatibleClassTracker.DoNothing, moduleName, Opcodes.V1_6)
     private val reportDiagnosticsTasks = ArrayList<() -> Unit>()
 
     fun reportDiagnostics() {

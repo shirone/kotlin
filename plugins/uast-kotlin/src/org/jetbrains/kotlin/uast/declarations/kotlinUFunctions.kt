@@ -30,6 +30,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.org.objectweb.asm.Opcodes
 import org.jetbrains.uast.*
 import org.jetbrains.uast.kinds.UastVariableInitialierKind
 import org.jetbrains.uast.psi.PsiElementBacked
@@ -67,7 +68,7 @@ abstract class KotlinAbstractUFunction : KotlinAbstractUElement(), UFunction, Ps
         }
 
         val typeMapper = KotlinTypeMapper(BindingContext.EMPTY, ClassBuilderMode.LIGHT_CLASSES, NoResolveFileClassesProvider, null,
-                                          IncompatibleClassTracker.DoNothing, JvmAbi.DEFAULT_MODULE_NAME)
+                                          IncompatibleClassTracker.DoNothing, JvmAbi.DEFAULT_MODULE_NAME, Opcodes.V1_6)
         typeMapper.mapAsmMethod(descriptor).descriptor
     }
 

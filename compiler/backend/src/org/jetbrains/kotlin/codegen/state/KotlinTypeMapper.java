@@ -127,7 +127,8 @@ public class KotlinTypeMapper {
             @NotNull JvmFileClassesProvider fileClassesProvider,
             @Nullable IncrementalCache incrementalCache,
             @NotNull IncompatibleClassTracker incompatibleClassTracker,
-            @NotNull String moduleName
+            @NotNull String moduleName,
+            int jvmVersion
     ) {
         this.bindingContext = bindingContext;
         this.classBuilderMode = classBuilderMode;
