@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.config.LanguageFeatureSettings
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
+import org.jetbrains.kotlin.descriptors.VariableDescriptor
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.diagnostics.Errors.*
 import org.jetbrains.kotlin.psi.*
@@ -123,6 +124,17 @@ class DoubleColonExpressionResolver(
         }
     }
 
+    private fun KtExpression.canBeConsideredProperType(): Boolean {
+        return when (this) {
+            is KtSimpleNameExpression -> true
+            is KtDotQualifiedExpression -> {
+                val selector = selectorExpression
+                selector is KtSimpleNameExpression || (selector is KtCallExpression && selector.isWithoutValueArguments)
+            }
+            else -> false
+        }
+    }
+
     private fun shouldTryResolveLHSAsExpression(expression: KtDoubleColonExpression): Boolean {
         // TODO: improve diagnostic when bound callable references are disabled
         if (!languageFeatureSettings.supportsFeature(LanguageFeature.BoundCallableReferences)) return false
@@ -143,6 +155,8 @@ class DoubleColonExpressionResolver(
             val type = typeInfo.type
 
             if (type != null) {
+                // Be careful not to call a utility function to get a resolved call by an expression which may accidentally
+                // deparenthesize that expression, as this is undesirable here
                 val call = traceForExpr.trace.bindingContext[BindingContext.CALL, expression.getQualifiedElementSelector()]
                 val resolvedCall = call.getResolvedCall(traceForExpr.trace.bindingContext)
                 val implicitReferenceToCompanion =
@@ -152,7 +166,12 @@ class DoubleColonExpressionResolver(
                             result.classDescriptor.companionObjectDescriptor != null
                         }
 
-                if (!implicitReferenceToCompanion) {
+                val resolvedToFunctionWithoutArguments =
+                        resolvedCall != null &&
+                        resolvedCall.resultingDescriptor !is VariableDescriptor &&
+                        expression.canBeConsideredProperType()
+
+                if (!implicitReferenceToCompanion && !resolvedToFunctionWithoutArguments) {
                     traceForExpr.commit()
                     return DoubleColonLHS.Expression(typeInfo).apply {
                         c.trace.record(BindingContext.DOUBLE_COLON_LHS, expression, this)

@@ -1701,6 +1701,12 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTest {
                 doTest(fileName);
             }
 
+            @TestMetadata("sam.kt")
+            public void testSam() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/callableReference/sam.kt");
+                doTest(fileName);
+            }
+
             @TestMetadata("unused.kt")
             public void testUnused() throws Exception {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/callableReference/unused.kt");
@@ -1763,6 +1769,12 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTest {
                 @TestMetadata("callableRefrenceOnNestedObject.kt")
                 public void testCallableRefrenceOnNestedObject() throws Exception {
                     String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/callableReference/function/callableRefrenceOnNestedObject.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("classMemberVsConstructorLikeFunction.kt")
+                public void testClassMemberVsConstructorLikeFunction() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/callableReference/function/classMemberVsConstructorLikeFunction.kt");
                     doTest(fileName);
                 }
 
