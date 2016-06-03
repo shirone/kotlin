@@ -424,17 +424,17 @@ open class KtLightClassForExplicitDeclaration(
 
 
         fun create(classOrObject: KtClassOrObject): KtLightClassForExplicitDeclaration? {
-            val fqName = predictFqName(classOrObject) ?: return null
-
             if (classOrObject is KtObjectDeclaration && classOrObject.isObjectLiteral()) {
                 return CachedValuesManager.getManager(classOrObject.project).getCachedValue(classOrObject) {
-                    val result = KtLightClassForExplicitDeclaration(fqName, classOrObject)
+                    val fqName = predictFqName(classOrObject)
+                    val result = if (fqName != null) KtLightClassForExplicitDeclaration(fqName, classOrObject) else null
                     CachedValueProvider.Result(result, PsiModificationTracker.MODIFICATION_COUNT)
                 }
             }
 
             return CachedValuesManager.getManager(classOrObject.project).getCachedValue(classOrObject) {
-                val result = KtLightClassForExplicitDeclaration(fqName, classOrObject)
+                val fqName = predictFqName(classOrObject)
+                val result = if (fqName != null) KtLightClassForExplicitDeclaration(fqName, classOrObject) else null
                 CachedValueProvider.Result(result, PsiModificationTracker.OUT_OF_CODE_BLOCK_MODIFICATION_COUNT)
             }
         }
