@@ -24,6 +24,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.DebugUtil
 import com.intellij.psi.impl.java.stubs.PsiJavaFileStub
 import com.intellij.psi.impl.light.LightClass
+import com.intellij.psi.impl.light.LightEmptyImplementsList
 import com.intellij.psi.impl.light.LightMethod
 import com.intellij.psi.scope.PsiScopeProcessor
 import com.intellij.psi.search.SearchScope
@@ -204,6 +205,22 @@ open class KtLightClassForExplicitDeclaration(
                 return true
             }
         }
+    }
+
+    override fun getImplementsList(): PsiReferenceList? {
+        if (classOrObject.getSuperTypeListEntries().isEmpty()) {
+            return LightEmptyImplementsList(manager)
+        }
+
+        return super.getImplementsList()
+    }
+
+    override fun getExtendsList(): PsiReferenceList? {
+        if (classOrObject.getSuperTypeListEntries().isEmpty()) {
+            return LightEmptyImplementsList(manager)
+        }
+
+        return delegate.extendsList
     }
 
     override fun getContainingFile(): PsiFile? = _containingFile
