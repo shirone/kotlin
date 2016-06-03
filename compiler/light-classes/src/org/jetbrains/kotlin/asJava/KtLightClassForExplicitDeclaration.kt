@@ -31,7 +31,9 @@ import com.intellij.psi.search.SearchScope
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.annotations.NonNls
@@ -425,10 +427,16 @@ open class KtLightClassForExplicitDeclaration(
             val fqName = predictFqName(classOrObject) ?: return null
 
             if (classOrObject is KtObjectDeclaration && classOrObject.isObjectLiteral()) {
-                return KtLightClassForAnonymousDeclaration(fqName, classOrObject)
+                return CachedValuesManager.getManager(classOrObject.project).getCachedValue(classOrObject) {
+                    val result = KtLightClassForExplicitDeclaration(fqName, classOrObject)
+                    CachedValueProvider.Result(result, PsiModificationTracker.MODIFICATION_COUNT)
+                }
             }
 
-            return KtLightClassForExplicitDeclaration(fqName, classOrObject)
+            return CachedValuesManager.getManager(classOrObject.project).getCachedValue(classOrObject) {
+                val result = KtLightClassForExplicitDeclaration(fqName, classOrObject)
+                CachedValueProvider.Result(result, PsiModificationTracker.OUT_OF_CODE_BLOCK_MODIFICATION_COUNT)
+            }
         }
 
         private fun predictFqName(classOrObject: KtClassOrObject): FqName? {
