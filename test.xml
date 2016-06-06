@@ -1,0 +1,42 @@
+<project name="Kotlin" default="substitute">
+    <property name="kotlin.plugin.dir" value="out/artifacts/Kotlin"/>
+    <property name="kotlin.bare.plugin.dir" value="out/artifacts/BareKotlin"/>
+
+    <property name="merged.vcs.build.number" value="unknown"/>
+    <property name="merged.dir" value=".merged"/>
+    <property name="kotlin.compiler.merged.plugin.dir" value="${merged.dir}/unpack" />
+    <property name="kotlin.compiler.merged.dir" value="${merged.dir}/unpack/Kotlin" />
+
+    <macrodef name="substitute-kotlinc">
+        <attribute name="dir"/>
+        <sequential>
+            <delete dir="@{dir}/kotlinc" failonerror="false"/>
+            <copy todir="@{dir}/kotlinc">
+                <fileset dir="${kotlin.compiler.merged.dir}/kotlinc"/>
+            </copy>
+        </sequential>
+    </macrodef>
+
+    <target name="check_version">
+        <condition property="merge.version.set" value="true">
+            <not><equals arg1="${merged.vcs.build.number}" arg2="unknown"/></not>
+        </condition>
+    </target>
+
+    <target name="doSubstitute" if="merge.version.set">
+        <delete dir="${merged.dir}" failonerror="false"/>
+        <mkdir dir="${merged.dir}"/>
+
+        <get src="https://teamcity.jetbrains.com/guestAuth/repository/download/bt345/${merged.vcs.build.number}/kotlin-plugin-{build.number}.zip"
+             dest="${merged.dir}/merged-plugin.zip" usetimestamp="true"/>
+
+        <delete dir="${kotlin.compiler.merged.plugin.dir}" failonerror="false"/>
+        <unzip src="${merged.dir}/merged-plugin.zip" dest="${kotlin.compiler.merged.plugin.dir}"/>
+
+        <substitute-kotlinc dir="${kotlin.plugin.dir}"/>
+        <substitute-kotlinc dir="${kotlin.bare.plugin.dir}"/>
+    </target>
+
+    <target name="substitute" depends="check_version,doSubstitute">
+    </target>
+</project>

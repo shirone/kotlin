@@ -57,10 +57,20 @@ import java.util.*
 import javax.swing.Icon
 
 open class KtLightClassForExplicitDeclaration(
-        protected val classFqName: FqName, // FqName of (possibly inner) class
+        private val classFqName_: FqName? = null,
+        private val classFqNameF_: ((KtClassOrObject) -> FqName)?,// FqName of (possibly inner) class
         protected val classOrObject: KtClassOrObject)
 : KtWrappingLightClass(classOrObject.manager), KtJavaMirrorMarker, StubBasedPsiElement<KotlinClassOrObjectStub<out KtClassOrObject>> {
     private val lightIdentifier = KtLightIdentifier(this, classOrObject)
+
+    protected val classFqName : FqName by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        if (classFqName_ != null) {
+            classFqName_!!
+        }
+        else {
+            classFqNameF_!!(classOrObject)
+        }
+    }
 
     private fun getLocalClassParent(): PsiElement? {
         fun getParentByPsiMethod(method: PsiMethod?, name: String?, forceMethodWrapping: Boolean): PsiElement? {
@@ -146,7 +156,7 @@ open class KtLightClassForExplicitDeclaration(
     override fun getFqName(): FqName = classFqName
 
     override fun copy(): PsiElement {
-        return KtLightClassForExplicitDeclaration(classFqName, classOrObject.copy() as KtClassOrObject)
+        return KtLightClassForExplicitDeclaration(classFqName, null, classOrObject.copy() as KtClassOrObject)
     }
 
     override val clsDelegate: PsiClass by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -383,7 +393,8 @@ open class KtLightClassForExplicitDeclaration(
         }
 
         val thisDescriptor = getDescriptor()
-        return qualifiedName != null && thisDescriptor != null && checkSuperTypeByFQName(thisDescriptor, qualifiedName, checkDeep)
+        val result = qualifiedName != null && thisDescriptor != null && checkSuperTypeByFQName(thisDescriptor, qualifiedName, checkDeep)
+        return result
     }
 
     @Throws(IncorrectOperationException::class)
@@ -424,15 +435,14 @@ open class KtLightClassForExplicitDeclaration(
         fun create(classOrObject: KtClassOrObject): KtLightClassForExplicitDeclaration? {
             if (classOrObject is KtObjectDeclaration && classOrObject.isObjectLiteral()) {
                 return CachedValuesManager.getManager(classOrObject.project).getCachedValue(classOrObject) {
-                    val fqName = predictFqName(classOrObject)
-                    val result = if (fqName != null) KtLightClassForExplicitDeclaration(fqName, classOrObject) else null
+                    val result = KtLightClassForExplicitDeclaration(null, { predictFqName(it)!! }, classOrObject)
                     CachedValueProvider.Result(result, PsiModificationTracker.MODIFICATION_COUNT)
                 }
             }
 
             return CachedValuesManager.getManager(classOrObject.project).getCachedValue(classOrObject) {
                 val fqName = predictFqName(classOrObject)
-                val result = if (fqName != null) KtLightClassForExplicitDeclaration(fqName, classOrObject) else null
+                val result = if (fqName != null) KtLightClassForExplicitDeclaration(fqName, null, classOrObject) else null
                 CachedValueProvider.Result(result, PsiModificationTracker.OUT_OF_CODE_BLOCK_MODIFICATION_COUNT)
             }
         }
