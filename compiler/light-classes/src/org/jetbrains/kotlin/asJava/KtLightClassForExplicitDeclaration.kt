@@ -209,19 +209,17 @@ open class KtLightClassForExplicitDeclaration(
     }
 
     override fun getImplementsList(): PsiReferenceList? {
-        if (classOrObject.getSuperTypeListEntries().isEmpty()) {
-            return LightEmptyImplementsList(manager)
+        return when {
+            classOrObject.getSuperTypeListEntries().any { it is KtSuperTypeEntry || it is KtDelegatedSuperTypeEntry } -> super.getImplementsList()
+            else -> LightEmptyImplementsList(manager)
         }
-
-        return super.getImplementsList()
     }
 
     override fun getExtendsList(): PsiReferenceList? {
-        if (classOrObject.getSuperTypeListEntries().isEmpty()) {
-            return LightEmptyImplementsList(manager)
+        return when {
+            classOrObject.getSuperTypeListEntries().any { it is KtSuperTypeCallEntry } -> super.getExtendsList()
+            else -> LightEmptyImplementsList(manager)
         }
-
-        return delegate.extendsList
     }
 
     override fun getContainingFile(): PsiFile? = _containingFile
