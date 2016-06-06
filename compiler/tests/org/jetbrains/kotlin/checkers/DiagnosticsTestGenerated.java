@@ -1739,6 +1739,18 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTest {
                     doTest(fileName);
                 }
 
+                @TestMetadata("dataFlow.kt")
+                public void testDataFlow() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/callableReference/bound/dataFlow.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("expectedType.kt")
+                public void testExpectedType() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/callableReference/bound/expectedType.kt");
+                    doTest(fileName);
+                }
+
                 @TestMetadata("object.kt")
                 public void testObject() throws Exception {
                     String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/callableReference/bound/object.kt");
