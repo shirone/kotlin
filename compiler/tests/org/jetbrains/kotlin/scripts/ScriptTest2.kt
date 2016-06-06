@@ -23,9 +23,14 @@ import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoot
+import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.codegen.CompilationException
+import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.config.addKotlinSourceRoot
+import org.jetbrains.kotlin.load.kotlin.KtFilesProcessor
+import org.jetbrains.kotlin.psi.KtAnnotationEntry
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.script.*
 import org.jetbrains.kotlin.test.ConfigurationKind
 import org.jetbrains.kotlin.test.KotlinTestUtils
@@ -59,6 +64,13 @@ class ScriptTest2 {
         aClass!!.getConstructor(Integer.TYPE, Integer.TYPE).newInstance(4, 1)
     }
 
+    @Test
+    fun testScriptWithDependsAnn() {
+        val aClass = compileScript("fib_ext_ann.kts", ScriptWithIntParam::class, null)
+        Assert.assertNotNull(aClass)
+        aClass!!.getConstructor(Integer.TYPE).newInstance(4)
+    }
+
     private fun compileScript(
             scriptPath: String,
             scriptBase: KClass<out Any>,
@@ -84,6 +96,10 @@ class ScriptTest2 {
             configuration.put(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, messageCollector)
             configuration.addKotlinSourceRoot(scriptPath)
             configuration.add(JVMConfigurationKeys.SCRIPT_DEFINITIONS, scriptDefinition)
+            configuration.add(JVMConfigurationKeys.FILES_PARSING_PLUGINS,
+                              ScriptKtFilesProcessor(GetTestKotlinScriptDependencies(),
+                                                     null,
+                                                     configuration))
             scriptDefinition.getScriptDependenciesClasspath().forEach { configuration.addJvmClasspathRoot(File(it)) }
 
             val environment = KotlinCoreEnvironment.createForProduction(rootDisposable, configuration, EnvironmentConfigFiles.JVM_CONFIG_FILES)
@@ -111,12 +127,59 @@ class ScriptTest2 {
 
 class GetTestKotlinScriptDependencies : GetScriptDependencies {
 
-    override fun invoke(annotations: Iterable<Annotation>, context: Any?): ScriptDependencies? =
-            object : ScriptDependencies {
-                override val classpath =
-                        (GetTestKotlinScriptDependencies::class.java.classLoader as? URLClassLoader)?.urLs?.map { it.file } ?: emptyList()
-                override val implicitImports = emptyList<String>()
+    private val kotlinPaths by lazy { PathUtil.getKotlinPathsForCompiler() }
+
+    override fun invoke(annotations: Iterable<KtAnnotationEntry>, context: Any?): ScriptDependencies? {
+        if (annotations.none()) return null
+        val anns = annotations.map { parseAnnotation(it) }.filter { it.name == depends::class.simpleName }
+        val cp = anns.flatMap {
+            it.value.mapNotNull {
+                when (it) {
+                    is SimpleUntypedAst.Node.str -> if (it.value == "@{runtime}") kotlinPaths.runtimePath.canonicalPath else it.value
+                    else -> null
+                }
             }
+        }
+        return object : ScriptDependencies {
+            override val classpath = cp
+            override val implicitImports = emptyList<String>()
+        }
+    }
+
+    private fun classpathFromClassloader(): List<String> =
+            (GetTestKotlinScriptDependencies::class.java.classLoader as? URLClassLoader)?.urLs
+                    ?.mapNotNull { it.toFile()?.canonicalPath }
+                    ?.filter { it.contains("out/test") }
+            ?: emptyList()
+
+    override fun invoke(context: Any?): ScriptDependencies? {
+        return object : ScriptDependencies {
+            override val classpath = classpathFromClassloader()
+            override val implicitImports = emptyList<String>()
+        }
+    }
+}
+
+fun parseAnnotation(ann: KtAnnotationEntry): SimpleUntypedAst.Node.list<Any> {
+    val wann = SimpleUntypedAst.KtAnnotationWrapper(ann)
+    val vals = wann.valueArguments
+    return SimpleUntypedAst.Node.list(wann.name, vals)
+}
+
+class ScriptKtFilesProcessor(
+        val getScriptDependencies: GetScriptDependencies,
+        val context: Any?,
+        val configuration: CompilerConfiguration
+) : KtFilesProcessor {
+
+    override fun invoke(ktFiles: Iterable<KtFile>) {
+        val cp = ktFiles.flatMap {
+            getScriptDependencies(it.annotationEntries, context)?.classpath ?: emptyList()
+        }
+        if (cp.size > 0) {
+            configuration.addJvmClasspathRoots(cp.map { File(it) })
+        }
+    }
 }
 
 
@@ -131,3 +194,7 @@ abstract class ScriptWithClassParam(param: TestParamClass)
 @ScriptFilePattern(".*\\.kts")
 @ScriptDependencyExtractor(GetTestKotlinScriptDependencies::class)
 abstract class ScriptWithBaseClass(num: Int, passthrough: Int) : TestDSLClassWithParam(passthrough)
+
+@Target(AnnotationTarget.FILE)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class depends(val path: String)

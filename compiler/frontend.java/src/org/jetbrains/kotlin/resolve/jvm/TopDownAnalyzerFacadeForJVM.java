@@ -34,6 +34,7 @@ import org.jetbrains.kotlin.descriptors.PackagePartProvider;
 import org.jetbrains.kotlin.frontend.java.di.ContainerForTopDownAnalyzerForJvm;
 import org.jetbrains.kotlin.frontend.java.di.InjectionKt;
 import org.jetbrains.kotlin.incremental.components.LookupTracker;
+import org.jetbrains.kotlin.load.kotlin.KtFilesProcessor;
 import org.jetbrains.kotlin.load.kotlin.incremental.IncrementalPackageFragmentProvider;
 import org.jetbrains.kotlin.load.kotlin.incremental.IncrementalPackagePartProvider;
 import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCache;
@@ -70,6 +71,15 @@ public enum TopDownAnalyzerFacadeForJVM {
     ) {
         Project project = moduleContext.getProject();
         List<KtFile> allFiles = JvmAnalyzerFacade.getAllFilesToAnalyze(project, null, files);
+
+        List<KtFilesProcessor> fileParsingPplugins =
+                configuration.get(JVMConfigurationKeys.FILES_PARSING_PLUGINS);
+
+        if (fileParsingPplugins != null) {
+            for (KtFilesProcessor plugin: fileParsingPplugins) {
+                plugin.invoke(allFiles);
+            }
+        }
 
         FileBasedDeclarationProviderFactory providerFactory =
                 new FileBasedDeclarationProviderFactory(moduleContext.getStorageManager(), allFiles);

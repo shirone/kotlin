@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.config;
 
+import org.jetbrains.kotlin.load.kotlin.KtFilesProcessor;
 import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCompilationComponents;
 import org.jetbrains.kotlin.modules.Module;
 import org.jetbrains.kotlin.script.KotlinScriptDefinition;
@@ -74,4 +75,7 @@ public class JVMConfigurationKeys {
 
     public static final CompilerConfigurationKey<List<String>> FRIEND_PATHS =
             CompilerConfigurationKey.create("friend module paths");
+
+    public static final CompilerConfigurationKey<List<KtFilesProcessor>> FILES_PARSING_PLUGINS =
+            CompilerConfigurationKey.create("plugins for files processing during parsing phase");
 }
