@@ -272,9 +272,10 @@ public class LazyClassDescriptor extends ClassDescriptorBase implements ClassDes
         ConstructorDescriptor primaryConstructor = getUnsubstitutedPrimaryConstructor();
         if (primaryConstructor != null) return primaryConstructor;
 
-        return new FunctionDescriptorImpl(LazyClassDescriptor.this, null, Annotations.Companion.getEMPTY(),
-                                          Name.special("<init-blocks>"),
-                                          CallableMemberDescriptor.Kind.SYNTHESIZED, SourceElement.NO_SOURCE) {
+        return new FunctionDescriptorImpl(
+                LazyClassDescriptor.this, null, Annotations.Companion.getEMPTY(), Name.special("<init-blocks>"),
+                CallableMemberDescriptor.Kind.SYNTHESIZED, SourceElement.NO_SOURCE
+        ) {
             @NotNull
             @Override
             protected FunctionDescriptorImpl createSubstitutedCopy(
@@ -284,18 +285,6 @@ public class LazyClassDescriptor extends ClassDescriptorBase implements ClassDes
                     @Nullable Name newName,
                     @NotNull Annotations annotations,
                     boolean preserveSource
-            ) {
-                throw new UnsupportedOperationException();
-            }
-
-            @NotNull
-            @Override
-            public FunctionDescriptor copy(
-                    DeclarationDescriptor newOwner,
-                    Modality modality,
-                    Visibility visibility,
-                    Kind kind,
-                    boolean copyOverrides
             ) {
                 throw new UnsupportedOperationException();
             }
