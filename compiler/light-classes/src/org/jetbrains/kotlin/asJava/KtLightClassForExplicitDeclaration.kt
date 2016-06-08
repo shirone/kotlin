@@ -250,12 +250,20 @@ open class KtLightClassForExplicitDeclaration(
 
         val aClass = other as KtLightClassForExplicitDeclaration
 
-        if (classFqName != aClass.classFqName) return false
+        if (classOrObject.isLocal()) {
+            return classOrObject == other.classOrObject
+        }
 
-        return true
+        return classFqName == aClass.classFqName
     }
 
-    override fun hashCode(): Int = classFqName.hashCode()
+    override fun hashCode(): Int {
+        if (classOrObject.isLocal()) {
+            return classOrObject.hashCode()
+        }
+
+        return classFqName.hashCode()
+    }
 
     override fun getContainingClass(): PsiClass? {
         if (classOrObject.parent === classOrObject.containingFile) return null
@@ -384,6 +392,11 @@ open class KtLightClassForExplicitDeclaration(
 
     override fun isInheritor(baseClass: PsiClass, checkDeep: Boolean): Boolean {
         val qualifiedName: String?
+
+        if (this.classOrObject.isLocal()) {
+            return true
+        }
+
         if (baseClass is KtLightClassForExplicitDeclaration) {
             val baseDescriptor = baseClass.getDescriptor()
             qualifiedName = if (baseDescriptor != null) DescriptorUtils.getFqName(baseDescriptor).asString() else null
