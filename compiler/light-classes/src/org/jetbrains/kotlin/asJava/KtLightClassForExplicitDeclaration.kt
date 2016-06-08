@@ -289,7 +289,7 @@ open class KtLightClassForExplicitDeclaration(
 
     override fun getName(): String? {
         if (classOrObject.isLocal()) {
-            return null
+            return classOrObject.name
         }
 
         return classFqName.shortName().asString()
