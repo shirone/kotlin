@@ -60,7 +60,9 @@ protected constructor(
 
     override fun getContributedClassifier(name: Name, location: LookupLocation): ClassifierDescriptor? {
         recordLookup(name, location)
-        return classDescriptors(name).firstOrNull() ?: typeAliasDescriptors(name).firstOrNull()
+        val firstClassDescriptor = classDescriptors(name).firstOrNull()
+        val firstTypeAliasDescriptor = typeAliasDescriptors(name).firstOrNull()
+        return firstClassDescriptor ?: firstTypeAliasDescriptor
     }
 
     override fun getContributedFunctions(name: Name, location: LookupLocation): Collection<SimpleFunctionDescriptor> {
