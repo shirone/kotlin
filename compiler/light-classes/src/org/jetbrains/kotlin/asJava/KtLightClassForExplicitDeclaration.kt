@@ -49,6 +49,7 @@ import org.jetbrains.kotlin.platform.JavaToKotlinClassMap
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getElementTextWithContext
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
+import org.jetbrains.kotlin.psi.psiUtil.isObjectLiteral
 import org.jetbrains.kotlin.psi.stubs.KotlinClassOrObjectStub
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.builtIns
@@ -57,10 +58,17 @@ import java.util.*
 import javax.swing.Icon
 
 open class KtLightClassForExplicitDeclaration(
-        private val classFqName_: FqName? = null,
+        private val classFqName_: FqName?,
         private val classFqNameF_: ((KtClassOrObject) -> FqName)?,// FqName of (possibly inner) class
         protected val classOrObject: KtClassOrObject)
 : KtWrappingLightClass(classOrObject.manager), KtJavaMirrorMarker, StubBasedPsiElement<KotlinClassOrObjectStub<out KtClassOrObject>> {
+
+    init {
+        assert(!classOrObject.isObjectLiteral()) {
+            "Attempt to create KtLightClassForExplicitDeclaration for anonymous declaration: ${classOrObject.containingFile} $classOrObject"
+        }
+    }
+
     private val lightIdentifier = KtLightIdentifier(this, classOrObject)
 
     protected val classFqName : FqName by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -250,18 +258,10 @@ open class KtLightClassForExplicitDeclaration(
 
         val aClass = other as KtLightClassForExplicitDeclaration
 
-        if (classOrObject.isLocal()) {
-            return classOrObject == other.classOrObject
-        }
-
         return classFqName == aClass.classFqName
     }
 
     override fun hashCode(): Int {
-        if (classOrObject.isLocal()) {
-            return classOrObject.hashCode()
-        }
-
         return classFqName.hashCode()
     }
 
@@ -288,10 +288,6 @@ open class KtLightClassForExplicitDeclaration(
     override fun getTypeParameters(): Array<PsiTypeParameter> = _typeParameterList.typeParameters
 
     override fun getName(): String? {
-        if (classOrObject.isLocal()) {
-            return classOrObject.name
-        }
-
         return classFqName.shortName().asString()
     }
 
@@ -399,10 +395,6 @@ open class KtLightClassForExplicitDeclaration(
     override fun isInheritor(baseClass: PsiClass, checkDeep: Boolean): Boolean {
         val qualifiedName: String?
 
-        if (this.classOrObject.isLocal()) {
-            return true
-        }
-
         if (baseClass is KtLightClassForExplicitDeclaration) {
             val baseDescriptor = baseClass.getDescriptor()
             qualifiedName = if (baseDescriptor != null) DescriptorUtils.getFqName(baseDescriptor).asString() else null
@@ -454,7 +446,7 @@ open class KtLightClassForExplicitDeclaration(
         fun create(classOrObject: KtClassOrObject): KtLightClassForExplicitDeclaration? {
             if (classOrObject is KtObjectDeclaration && classOrObject.isObjectLiteral()) {
                 return CachedValuesManager.getManager(classOrObject.project).getCachedValue(classOrObject) {
-                    val result = KtLightClassForExplicitDeclaration(null, { predictFqName(it)!! }, classOrObject)
+                    val result = KtLightClassForAnonymousDeclaration(null, { predictFqName(it)!! }, classOrObject)
                     CachedValueProvider.Result(result, PsiModificationTracker.MODIFICATION_COUNT)
                 }
             }
