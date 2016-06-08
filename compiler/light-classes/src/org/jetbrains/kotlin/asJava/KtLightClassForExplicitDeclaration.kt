@@ -62,13 +62,6 @@ open class KtLightClassForExplicitDeclaration(
         private val classFqNameF_: ((KtClassOrObject) -> FqName)?,// FqName of (possibly inner) class
         protected val classOrObject: KtClassOrObject)
 : KtWrappingLightClass(classOrObject.manager), KtJavaMirrorMarker, StubBasedPsiElement<KotlinClassOrObjectStub<out KtClassOrObject>> {
-
-    init {
-        assert(!classOrObject.isObjectLiteral()) {
-            "Attempt to create KtLightClassForExplicitDeclaration for anonymous declaration: ${classOrObject.containingFile} $classOrObject"
-        }
-    }
-
     private val lightIdentifier = KtLightIdentifier(this, classOrObject)
 
     protected val classFqName : FqName by lazy(LazyThreadSafetyMode.PUBLICATION) {
