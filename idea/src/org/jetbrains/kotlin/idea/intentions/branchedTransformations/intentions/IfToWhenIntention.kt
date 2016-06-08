@@ -67,14 +67,18 @@ class IfToWhenIntention : SelfTargetingRangeIntention<KtIfExpression>(KtIfExpres
         }
     }
 
-    private fun KtIfExpression.siblingsUpTo(other: KtExpression): List<PsiElement> {
+    private fun KtIfExpression.commentsUpTo(other: KtExpression) = siblingsUpTo(other, commentsOnly = true)
+
+    private fun KtIfExpression.siblingsUpTo(other: KtExpression, commentsOnly: Boolean = false): List<PsiElement> {
         val result = ArrayList<PsiElement>()
         var nextSibling = nextSibling
         // We delete elements up to the next if (or up to the end of the surrounding block)
         while (nextSibling != null && nextSibling != other) {
             // RBRACE closes the surrounding block, so it should not be copied / deleted
             if (nextSibling !is PsiWhiteSpace && nextSibling.node.elementType != KtTokens.RBRACE) {
-                result.add(nextSibling)
+                if (nextSibling is PsiComment || !commentsOnly) {
+                    result.add(nextSibling)
+                }
             }
             nextSibling = nextSibling.nextSibling
         }
@@ -134,7 +138,7 @@ class IfToWhenIntention : SelfTargetingRangeIntention<KtIfExpression>(KtIfExpres
                     currentIfExpression = currentElseBranch
                 }
                 else {
-                    toDelete.addAll(baseIfExpressionForSyntheticBranch.siblingsUpTo(currentElseBranch))
+                    toDelete.addAll(baseIfExpressionForSyntheticBranch.commentsUpTo(currentElseBranch))
                     appendElseBlock(currentElseBranch)
                     break
                 }
