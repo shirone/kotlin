@@ -19458,6 +19458,12 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTest {
                 doTest(fileName);
             }
 
+            @TestMetadata("projectionsInTypeAliasConstructor.kt")
+            public void testProjectionsInTypeAliasConstructor() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/typealias/projectionsInTypeAliasConstructor.kt");
+                doTest(fileName);
+            }
+
             @TestMetadata("recursive.kt")
             public void testRecursive() throws Exception {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/typealias/recursive.kt");
