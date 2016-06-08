@@ -2,7 +2,7 @@
 
 class TColl<T, C : Collection<T>>
 
-typealias TCErr = TColl<String, <!UPPER_BOUND_VIOLATED!>Any<!>>
+typealias TCErr = TColl<String, <!UPPER_BOUND_VIOLATED, UPPER_BOUND_VIOLATED!>Any<!>>
 typealias TCErr2 = TCErr
 
 fun testType1(x: TCErr) {}
